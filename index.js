@@ -38,6 +38,7 @@ const TagiasStatuses = {
 const TagiasErrors = {
   NONAME: 'NONAME',
   NOPICTURES: 'NOPICTURES',
+  BADPICTURES: 'BADPICTURES',
   NOLABELS: 'NOLABELS',
   BADCALLBACK: 'BADCALLBACK',
   BADBASEURL: 'BADBASEURL',
@@ -55,7 +56,7 @@ const TagiasErrors = {
  * @constant {string}
  * @default
  */
-const TAGIAS_URL = 'https://p.tagias.com/api/v1/tagias';
+const TAGIAS_URL = 'https://p.tagias.com/api/v2/tagias';
 
 /**
  * Translates the provided TAGIAS error code to a string message
@@ -67,6 +68,7 @@ function translateErrorCode(code) {
   switch (code) {
     case TagiasErrors.NONAME: return 'The package name is missing';
     case TagiasErrors.NOPICTURES: return 'The pictures array is empty or missing';
+    case TagiasErrors.BADPICTURES: return 'Some of the provided pictures could not be accessed or their URLs are malformed';
     case TagiasErrors.NOLABELS: return 'The labels array for the classification task is missing (or there are less than 2 items in the array)';
     case TagiasErrors.BADCALLBACK: return 'The callback URL is malformed';
     case TagiasErrors.BADBASEURL: return 'The baseurl URL is malformed';
@@ -192,10 +194,11 @@ class Tagias {
    * @param {string} callback - callback url where the results should be posted
    * @param {string} baseurl - base url address that will be appended at the start of every picture url
    * @param {Array<string>} pictures - array of pictures' url
+   * @param {boolean} labels_required - if annotations must be marked with a label from the labels array
    * @returns {Promise<TagiasNewPackage>} - an object with the newly created package information
    * @throws {TagiasError}
    */
-  async createPackage(name, type, descr, labels, callback, baseurl, pictures) {
+  async createPackage(name, type, descr, labels, callback, baseurl, pictures, labels_required = null) {
     const data = {
       name,
       type,
@@ -203,7 +206,8 @@ class Tagias {
       labels,
       callback,
       baseurl,
-      pictures
+      pictures,
+      labels_required
     };
 
     const result = await apiCall(async () => this.instance.post(`${TAGIAS_URL}/packages`, data));
@@ -241,6 +245,7 @@ class Tagias {
    * @property {string} status - package status
    * @property {string} descr - annotation task detailed description
    * @property {Array<string>} labels - array of labels for the classification annotation
+   * @property {boolean} labels_required - if annotations must be marked with a label from the labels array
    * @property {string} callback - the callback endpoint URL
    * @property {Date} created - a UTC date and time value when the package was created
    * @property {Date} started - a UTC date and time value when the first annotation was saved
